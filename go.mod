@@ -2,7 +2,11 @@ module endrih/go_todo
 
 go 1.23.2
 
-require github.com/gorilla/mux v1.8.1
+require (
+	github.com/gorilla/mux v1.8.1
+	github.com/gorilla/sessions v1.4.0
+	github.com/markbates/goth v1.80.0
+)
 
 require (
 	cloud.google.com/go/auth v0.9.8 // indirect
@@ -13,6 +17,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0 // indirect
 	go.opentelemetry.io/otel v1.29.0 // indirect
@@ -29,6 +34,8 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
+	github.com/joho/godotenv v1.5.1
+	github.com/lib/pq v1.10.9
 	golang.org/x/oauth2 v0.23.0 // indirect
 	google.golang.org/api v0.201.0
 )
