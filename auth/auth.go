@@ -1,13 +1,13 @@
 package auth
 
 import (
-	"encoding/json"
+	"context"
+	"endrih/go_todo/application"
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 
-	"github.com/gorilla/sessions"
+	"cloud.google.com/go/auth/credentials/idtoken"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
@@ -31,20 +31,8 @@ var GoogleOauthConfig = OAuthConfig{
 }
 
 func NewAuth() {
-	key := os.Getenv("SESSION_KEY")                        // Replace with your SESSION_SECRET or similar
-	maxAge := 86400 * 30                                   // 30 days
-	isProd, err := strconv.ParseBool(os.Getenv("IS_PROD")) // Set to true when serving over https
-	if err != nil {
-		isProd = false
-	}
 
-	store := sessions.NewCookieStore([]byte(key))
-	store.MaxAge(maxAge)
-	store.Options.Path = "/"
-	store.Options.HttpOnly = true // HttpOnly should always be enabled
-	store.Options.Secure = isProd
-
-	gothic.Store = store
+	gothic.Store = application.App.Session
 
 	goth.UseProviders(
 		google.New(GoogleOauthConfig.ClientId, GoogleOauthConfig.ClientSecret, GoogleOauthConfig.RedirectUrl, GoogleOauthConfig.Scopes...),
@@ -55,13 +43,12 @@ func OauthGoogleCallback(res http.ResponseWriter, req *http.Request) {
 	// Add provider as a query parameter (this is what `gothic.CompleteUserAuth` expects)
 	user, err := gothic.CompleteUserAuth(res, req)
 	if err != nil {
-		fmt.Fprintln(res, err)
+		application.App.ErrorLog.Println(err)
 		return
 	}
-	jsonOut, err := json.MarshalIndent(user, "", "")
-	fmt.Println(string(jsonOut[:]))
-
-	http.Redirect(res, req, "/", http.StatusTemporaryRedirect)
+	//jsonOut, err := json.MarshalIndent(user, "", "")
+	//fmt.Println(string(jsonOut[:]))
+	http.Redirect(res, req, fmt.Sprintf("/login?id_token=%s", user.IDToken), http.StatusTemporaryRedirect)
 }
 
 func OauthGoogleLogin(res http.ResponseWriter, req *http.Request) {
@@ -70,4 +57,12 @@ func OauthGoogleLogin(res http.ResponseWriter, req *http.Request) {
 
 func OauthGoogleLogout(res http.ResponseWriter, req *http.Request) {
 	gothic.Logout(res, req)
+}
+
+func verifyIdToken(idTokenInput string) *idtoken.Payload {
+	payload, err := idtoken.Validate(context.Background(), idTokenInput, application.App.Config.GoogleConfig.GOOGLE_OAUTH2_CLIENT_ID)
+	if err != nil {
+		panic(err)
+	}
+	return payload
 }

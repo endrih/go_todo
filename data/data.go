@@ -2,8 +2,8 @@ package data
 
 import (
 	"database/sql"
+	"endrih/go_todo/config"
 	"fmt"
-	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -14,11 +14,11 @@ func checkError(err error) {
 	}
 }
 
-func Initialize() *sql.DB {
-	host := os.Getenv("DB_HOST")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+func Initialize(config *config.DbSettings) *sql.DB {
+	host := config.DB_HOST
+	user := config.DB_USER
+	password := config.DB_PASSWORD
+	dbName := config.DB_NAME
 	var connectionString string = fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=require", host, user, password, dbName)
 	db, err := sql.Open("postgres", connectionString)
 	checkError(err)

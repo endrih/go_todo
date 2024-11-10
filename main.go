@@ -1,41 +1,20 @@
 package main
 
 import (
-	"database/sql"
+	"endrih/go_todo/application"
 	"endrih/go_todo/auth"
-	"endrih/go_todo/config"
-	"endrih/go_todo/data"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 )
 
-type Application struct {
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	DB       sql.DB
-	Session  *sessions.Store
-	Config   *config.AppConfig
-}
-
-var App *Application
-
 func main() {
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-	db := data.Initialize()
-	config := config.Initialize()
-
-	App = &Application{
-		infoLog:  infoLog,
-		errorLog: errorLog,
-		DB:       *db,
-		Config:   config,
-	}
+	application.App.Initialize()
 	auth.NewAuth()
 	router := mux.NewRouter()
 	//router.HandleFunc("/api/todo", ).Methods("GET")
@@ -43,8 +22,31 @@ func main() {
 	router.HandleFunc("/auth/{provider}/login", auth.OauthGoogleLogin)
 	router.HandleFunc("/auth/{provider}/logout", auth.OauthGoogleLogout)
 	router.HandleFunc("/auth/{provider}/callback", auth.OauthGoogleCallback)
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/todoapp/dist/todoapp/browser")))
 
+	//Angular frontend
+	// Serve static assets directly.
+	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		dir, file := path.Split(strings.Split(r.RequestURI, "?")[0])
+		ext := filepath.Ext(file)
+		application.App.InfoLog.Println("request " + r.RequestURI)
+		application.App.InfoLog.Println("dir " + dir)
+		application.App.InfoLog.Println("file " + file)
+		application.App.InfoLog.Println("ext " + ext)
+		if file == "" || ext == "" {
+			application.App.InfoLog.Println("serving index.html")
+			http.ServeFile(w, r, "./frontend/todoapp/dist/todoapp/browser/index.html")
+			return
+		} else {
+			application.App.InfoLog.Println("serving " + path.Join(dir, file))
+			http.ServeFile(w, r, "./frontend/todoapp/dist/todoapp/browser/"+path.Join(dir, file))
+			return
+		}
+	})
+
+	// Catch-all: Serve our JavaScript application's entry-point (index.html).
+	// router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 	http.ServeFile(w, r, "./frontend/todoapp/dist/todoapp/browser/index.html")
+	// })
 	port := "10500"
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":" + port),
